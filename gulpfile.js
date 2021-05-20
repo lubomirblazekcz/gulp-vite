@@ -35,6 +35,7 @@ let userConfig = {};
 
 let viteOptions = {
     ignored: [`**/${config.input.templates}/**`],
+    output: config.output.templates,
     publicReload: false,
     vite: {
         css: {
