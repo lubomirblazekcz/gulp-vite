@@ -1,22 +1,38 @@
 {
   "name": "gulp-vite",
-  "version": "1.0.0",
-  "description": "",
   "type": "module",
-  "main": "gulpfile.js",
-  "author": "",
+  "version": "1.0.0",
+  "description": "Use vite as dev server with gulp",
+  "main": "index.cjs.js",
+  "module": "index.js",
+  "author": "evromalarkey",
   "license": "MIT",
+  "scripts": {
+    "build": "rollup index.js --file index.cjs.js --format cjs --exports default"
+  },
+  "dependencies": {
+    "lodash": "^4.17.21",
+    "chalk": "^4.1.1",
+    "vite": "^2.3.3"
+  },
   "devDependencies": {
     "autoprefixer": "^10.2.5",
-    "chalk": "^4.1.1",
     "esbuild-plugin-postcss2": "^0.0.9",
     "gulp": "^4.0.2",
     "gulp-esbuild": "^0.7.7",
     "gulp-rename": "^2.0.0",
     "gulp-twig2html": "^2.2.0",
-    "lodash": "^4.17.21",
     "postcss-import": "^14.0.2",
-    "postcss-nesting": "^8.0.1",
-    "vite": "^2.3.3"
+    "postcss-nesting": "^8.0.1"
+  },
+  "files": [
+    "index.js"
+  ],
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/evromalarkey/gulp-vite.git"
   }
 }

@@ -1,13 +1,12 @@
 import gulp from "gulp";
-import {createServer} from "vite";
 import esbuild from "gulp-esbuild";
 import twig from "gulp-twig2html";
 import rename from "gulp-rename";
 import fs from "fs";
 import path from "path";
 import lodash from "lodash";
-import chalk from "chalk";
 import postCssPlugin from "esbuild-plugin-postcss2";
+import Serve from "./index.js";
 
 let config = {
     root: process.cwd(),
@@ -34,6 +33,17 @@ let config = {
 
 let userConfig = {};
 
+let viteOptions = {
+    ignored: [`**/${config.input.templates}/**`],
+    vite: {
+        css: {
+            postcss: {
+                plugins: config.styles.postcss
+            }
+        }
+    }
+}
+
 if (fs.existsSync(path.join(process.cwd(), "gulpfile.config.js"))) {
     userConfig = (await import(path.join(process.cwd(), "gulpfile.config.js"))).default;
 }
@@ -44,97 +54,6 @@ const exists = {
     scripts: fs.existsSync(path.join(config.root, config.input.scripts)),
     styles: fs.existsSync(path.join(config.root, config.input.styles)),
     templates: fs.existsSync(path.join(config.root, config.input.templates))
-}
-
-const Serve = new class {
-    get plugin() {
-        return {
-            // middleware to translate paths from /page to /public/page.html
-            middleware: {
-                name: 'middleware',
-                apply: 'serve',
-                "configureServer": (viteDevServer) => {
-                    return () => {
-                        viteDevServer.middlewares.use(async (context, res, next) => {
-                            if (!context.originalUrl.endsWith(".html") && context.originalUrl !== "/") {
-                                context.url = `/${config.output.dir}` + context.originalUrl + ".html";
-                            } else if (context.url === "/index.html") {
-                                context.url = `/${config.output.dir}` + context.url;
-                            }
-
-                            next();
-                        });
-                    };
-                }
-            },
-            // reload page if there is change in public directory (doesn't work with vite by default)
-            reload: {
-                name: 'reload',
-                "handleHotUpdate": ({ file }) => {
-                    if (!file.includes('.json') && !file.includes('.html') && file.includes(`/public/`)) {
-                        this.reload();
-                    }
-                }
-            }
-        }
-    }
-    reload() {
-        // you can use this function to reload page in any gulp task you want, or anywhere in generally
-        if (typeof this.server !== "undefined") {
-            this.server.ws.send({
-                type: 'full-reload',
-                path: '*',
-            });
-            this.server.config.logger.info(
-                chalk.green(`page reload `) + chalk.dim(`${config.output.templates}/*.html`),
-                { clear: true, timestamp: true }
-            )
-        }
-    }
-    init() {
-        return new Promise(async resolve => {
-            let viteConfig = {
-                plugins: [this.plugin.middleware, this.plugin.reload],
-                publicDir: path.join(config.root, config.output.dir),
-                server: {
-                    open: "/",
-                    host: true,
-                    fsServe: {
-                        strict: false
-                    },
-                    watch: {
-                        // default vite watch ignore files and additional files to ignore, reload for templates files is handled manually
-                        ignored: ['**/node_modules/**', '**/.git/**', `**/${config.input.templates}/**`, `**/${config.output.dir}/*.html`]
-                    }
-                },
-                root: config.root,
-            };
-
-            let css = {
-                css: {
-                    postcss: {
-                        plugins: config.styles.postcss
-                    }
-                }
-            }
-
-            // skip adding postcss plugins in serve:build mode
-            if (config.serve.mode === "dev") {
-                viteConfig = lodash.merge(viteConfig, css)
-            }
-
-            // defines server instance in the Serve class
-            this.server = await createServer(viteConfig)
-
-
-            // starts the server
-            await this.server.listen()
-
-            console.log(" ");
-
-            resolve();
-        })
-    }
 }
 
 const Scripts = new class {
@@ -217,7 +136,7 @@ gulp.task("serve", resolve => {
 
     exists.templates && tasks.push("templates")
 
-    tasks.push(() => Serve.init(), "watch")
+    tasks.push(() => Serve.init(viteOptions), "watch")
 
     gulp.series(tasks)(resolve)
 });
@@ -232,7 +151,7 @@ gulp.task("serve:build", resolve => {
     exists.styles && tasks.push("styles:build")
     exists.templates && tasks.push("templates")
 
-    tasks.push(() => Serve.init(), "watch:build")
+    tasks.push(() => Serve.init(viteOptions), "watch:build")
 
     gulp.series(tasks)(resolve)
 });
