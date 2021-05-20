@@ -1,7 +1,7 @@
 {
   "name": "gulp-vite",
   "type": "module",
-  "version": "1.0.2",
+  "version": "1.0.4",
   "description": "Use vite as dev server with gulp",
   "main": "index.cjs.js",
   "module": "index.js",
@@ -26,8 +26,15 @@
     "postcss-nesting": "^8.0.1"
   },
   "files": [
-    "index.js"
+    "index.js",
+    "index.cjs.js"
   ],
+  "exports": {
+    ".": {
+      "import": "./index.js",
+      "require": "./index.cjs.js"
+    }
+  },
   "engines": {
     "node": ">=14.0.0"
   },
