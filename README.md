@@ -12,7 +12,9 @@ As an alternative approach you can build assets with gulp and use Vite as a powe
 npm i gulp-vite -D
 ```
 
+You need to use `"type": "module"` in package.json to use esm syntax
 ```js
+import gulp from "gulp";
 import vite from "gulp-vite";
 
 gulp.task("serve", () => vite.init({
