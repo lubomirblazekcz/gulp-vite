@@ -5,6 +5,8 @@
 
 Vite build system may not suit everyone, because of limiting entry options
 
+As an alternative approach you can build assets with gulp and use Vite as a powerful dev server
+
 ## Install into your project
 ```sh
 npm i gulp-vite -D
