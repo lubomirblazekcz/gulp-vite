@@ -1,18 +1,16 @@
 import gulp from "gulp";
 import {createServer} from "vite";
-import postcss from "gulp-postcss";
 import esbuild from "gulp-esbuild";
 import twig from "gulp-twig2html";
 import rename from "gulp-rename";
 import fs from "fs";
+import path from "path";
 import lodash from "lodash";
 import chalk from "chalk";
-import postcssImport from "postcss-import";
-import postcssNesting from "postcss-nesting";
-
-let root = process.cwd();
+import postCssPlugin from "esbuild-plugin-postcss2";
 
 let config = {
+    root: process.cwd(),
     output: {
         dir: "public",
         scripts: "public/assets",
@@ -28,36 +26,34 @@ let config = {
     },
     serve: {
         mode: ""
+    },
+    styles: {
+        postcss: []
     }
 }
 
-let exists = {
-    scripts: fs.existsSync(root + "/src/scripts"),
-    styles: fs.existsSync(root + "/src/styles"),
-    templates: fs.existsSync(root + "/src/templates")
+let userConfig = {};
+
+if (fs.existsSync(path.join(process.cwd(), "gulpfile.config.js"))) {
+    userConfig = (await import(path.join(process.cwd(), "gulpfile.config.js"))).default;
 }
 
-let postcssPlugins = [postcssImport, postcssNesting];
+lodash.merge(config, userConfig);
+
+const exists = {
+    scripts: fs.existsSync(path.join(config.root, config.input.scripts)),
+    styles: fs.existsSync(path.join(config.root, config.input.styles)),
+    templates: fs.existsSync(path.join(config.root, config.input.templates))
+}
 
 const Serve = new class {
-    reload() {
-        if (typeof this.server !== "undefined") {
-            this.server.ws.send({
-                type: 'full-reload',
-                path: '*',
-            });
-            this.server.config.logger.info(
-                chalk.green(`page reload `) + chalk.dim(`${config.output.templates}/*.html`),
-                { clear: true, timestamp: true }
-            )
-        }
-    }
-    init() {
-        return new Promise(async (resolve) => {
-            const middleware = {
+    get plugin() {
+        return {
+            // middleware to translate paths from /page to /public/page.html
+            middleware: {
                 name: 'middleware',
                 apply: 'serve',
-                configureServer(viteDevServer) {
+                "configureServer": (viteDevServer) => {
                     return () => {
                         viteDevServer.middlewares.use(async (context, res, next) => {
                             if (!context.originalUrl.endsWith(".html") && context.originalUrl !== "/") {
@@ -70,20 +66,36 @@ const Serve = new class {
                         });
                     };
                 }
-            }
-
-            const reload = {
+            },
+            // reload page if there is change in public directory (doesn't work with vite by default)
+            reload: {
                 name: 'reload',
-                handleHotUpdate: ({ file, server }) => {
+                "handleHotUpdate": ({ file }) => {
                     if (!file.includes('.json') && !file.includes('.html') && file.includes(`/public/`)) {
                         this.reload();
                     }
                 }
             }
-
+        }
+    }
+    reload() {
+        // you can use this function to reload page in any gulp task you want, or anywhere in generally
+        if (typeof this.server !== "undefined") {
+            this.server.ws.send({
+                type: 'full-reload',
+                path: '*',
+            });
+            this.server.config.logger.info(
+                chalk.green(`page reload `) + chalk.dim(`${config.output.templates}/*.html`),
+                { clear: true, timestamp: true }
+            )
+        }
+    }
+    init() {
+        return new Promise(async resolve => {
             let viteConfig = {
-                plugins: [middleware, reload],
-                publicDir: config.output.dir,
+                plugins: [this.plugin.middleware, this.plugin.reload],
+                publicDir: path.join(config.root, config.output.dir),
                 server: {
                     open: "/",
                     host: true,
@@ -91,26 +103,31 @@ const Serve = new class {
                         strict: false
                     },
                     watch: {
+                        // default vite watch ignore files and additional files to ignore, reload for templates files is handled manually
                         ignored: ['**/node_modules/**', '**/.git/**', `**/${config.input.templates}/**`, `**/${config.output.dir}/*.html`]
                     }
                 },
-                root: root,
+                root: config.root,
             };
 
             let css = {
                 css: {
                     postcss: {
-                        plugins: postcssPlugins
+                        plugins: config.styles.postcss
                     }
                 }
             }
 
+            // skip adding postcss plugins in serve:build mode
             if (config.serve.mode === "dev") {
                 viteConfig = lodash.merge(viteConfig, css)
             }
 
+            // defines server instance in the Serve class
             this.server = await createServer(viteConfig)
 
+
+            // starts the server
             await this.server.listen()
 
             console.log(" ");
@@ -122,20 +139,37 @@ const Serve = new class {
 
 const Scripts = new class {
     build() {
-        return gulp.src(root + `/${config.input.scripts}/*.{js,ts,tsx}`)
+        // scripts are being build with esbuild so you can use javascript or typescript
+        // you can apply any other transformation in the pipe, hash revision can be done with gulp-rev-all or directly in esbuild with esbuild-plugin-manifest
+        return gulp.src(config.root + `/${config.input.scripts}/*.{js,ts,tsx}`)
             .pipe(esbuild({
                 format: 'esm',
-                bundle: true
+                splitting: true,
+                bundle: true,
+                minify: true,
+                assetNames: '[name].[hash]',
+                chunkNames: '[name].[hash]',
+                // entryNames: '[name].[hash]'
             }))
-            .pipe(gulp.dest(root + `/${config.output.scripts}`));
+            .pipe(gulp.dest(path.join(config.root, config.output.scripts)));
     }
 }
 
 const Styles = new class {
     build() {
-        return gulp.src(root + `/${config.input.styles}/*.css`)
-            .pipe(postcss(postcssPlugins))
-            .pipe(gulp.dest(root + `/${config.output.styles}`));
+        // styles are being build with esbuild and esbuild-plugin-postcss2 so you can use postcss or any preprocessor
+        // you can apply any other transformation in the pipe (cleancss, purgecss etc.), hash revision can be done with gulp-rev-all or directly in esbuild with esbuild-plugin-manifest
+        return gulp.src(config.root + `/${config.input.styles}/*.{css,sass,scss,less, stylus}`)
+            .pipe(esbuild({
+                plugins: [
+                    postCssPlugin.default({
+                        plugins: config.styles.postcss
+                    })
+                ],
+                minify: true,
+                // entryNames: '[name].[hash]'
+            }))
+            .pipe(gulp.dest(path.join(config.root, config.output.styles)));
     }
 }
 
@@ -160,36 +194,24 @@ const Templates = new class {
         }
     }
     build() {
-        return gulp.src(root + `/${config.input.templates}/*.twig`)
+        return gulp.src(config.root + `/${config.input.templates}/*.twig`)
             .pipe(twig({
                 filters: this.filters,
                 context: {
                     outputPath: `/${config.output.dir}`,
                     inputPath: `/${config.input.dir}`
                 },
-                globals: `${root}/${config.input.main}`
+                globals: `${config.root}/${config.input.main}`
             }))
             .pipe(rename({ extname: '.html' }))
-            .pipe(gulp.dest(config.output.dir))
+            .pipe(gulp.dest(path.join(config.root, config.output.templates)))
             .on("end", () => Serve.reload())
     }
 }
 
-
-gulp.task("templates", () => {
-    return Templates.build()
-});
-
-gulp.task("scripts:build", () => {
-    return Scripts.build()
-});
-
-gulp.task("styles:build", () => {
-    return Styles.build()
-});
-
+// Everything is loaded from input path with vite, only templates are being build from sources
 gulp.task("serve", resolve => {
-    let tasks = ["templates"];
+    let tasks = [];
 
     config.serve.mode = "dev";
 
@@ -200,11 +222,14 @@ gulp.task("serve", resolve => {
     gulp.series(tasks)(resolve)
 });
 
+// Everything is loaded from output path with vite, styles, scripts and templates are being build from sources
 gulp.task("serve:build", resolve => {
-    let tasks = ["scripts:build", "styles:build", "templates"];
+    let tasks = [];
 
     config.serve.mode = "build";
 
+    exists.scripts && tasks.push("scripts:build")
+    exists.styles && tasks.push("styles:build")
     exists.templates && tasks.push("templates")
 
     tasks.push(() => Serve.init(), "watch:build")
@@ -212,22 +237,28 @@ gulp.task("serve:build", resolve => {
     gulp.series(tasks)(resolve)
 });
 
+gulp.task("scripts:build", () => Scripts.build());
+
+gulp.task("styles:build", () => Styles.build());
+
+gulp.task("templates", () => Templates.build());
+
 gulp.task("watch", () => {
     if (exists.templates) {
-        gulp.watch(`${config.input.templates}/**`, gulp.series("templates"))
+        gulp.watch(`${config.root}/${config.input.templates}/**`, gulp.series("templates"))
     }
 })
 
 gulp.task("watch:build", () => {
     if (exists.scripts) {
-        gulp.watch(`${config.input.scripts}/**`, gulp.series("scripts:build"))
+        gulp.watch(`${config.root}/${config.input.scripts}/**`, gulp.series("scripts:build"))
     }
 
     if (exists.styles) {
-        gulp.watch(`${config.input.styles}/**`, gulp.series("styles:build"))
+        gulp.watch(`${config.root}/${config.input.styles}/**`, gulp.series("styles:build"))
     }
 
     if (exists.templates) {
-        gulp.watch(`${config.input.templates}/**`, gulp.series("templates"))
+        gulp.watch(`${config.root}/${config.input.templates}/**`, gulp.series("templates"))
     }
 })
