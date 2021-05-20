@@ -2,7 +2,7 @@
 
 Vite build system may not suit everyone, because of limiting entry options
 
-So here is Vite used as web server and gulp for build with Esbuild
+So here is [Vite](https://vitejs.dev/) used as web server and gulp for build with [Esbuild](https://esbuild.github.io/)
 
 Vite and Esbuild can run any format you want - javascript, typescript, postcss, sass, less, stylus
 
