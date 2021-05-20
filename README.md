@@ -21,6 +21,7 @@ gulp.task("serve", () => vite.init({
     output: "public", // default output path, from where your html files are served
     root: process.cwd(), // default root path
     ignored: [`**/src/templates/**`], // files to ignore with vite watch
+    publicReload: false, // if html/json files should be reloaded in public dir
     vite: {
         // your vite config goes here
         css: {

@@ -6,7 +6,7 @@ import fs from "fs";
 import path from "path";
 import lodash from "lodash";
 import postCssPlugin from "esbuild-plugin-postcss2";
-import Serve from "./index.js";
+import Serve from "./index.mjs";
 
 let config = {
     root: process.cwd(),
@@ -35,6 +35,7 @@ let userConfig = {};
 
 let viteOptions = {
     ignored: [`**/${config.input.templates}/**`],
+    publicReload: false,
     vite: {
         css: {
             postcss: {

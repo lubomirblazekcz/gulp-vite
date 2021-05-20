@@ -1,7 +1,7 @@
 {
   "name": "gulp-vite",
   "type": "module",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "Use vite as dev server with gulp",
   "main": "index.cjs.js",
   "module": "index.mjs",

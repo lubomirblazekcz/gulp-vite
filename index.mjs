@@ -24,11 +24,11 @@ export default new class {
                     };
                 }
             },
-            // reload page if there is change in public directory (doesn't work with vite by default)
+            // reload page if there is change in public directory (it doesn't work with vite by default)
             reload: {
                 name: 'reload',
                 "handleHotUpdate": ({ file }) => {
-                    if (!file.includes('.json') && !file.includes('.html') && file.includes(`/${this.options.output}/`)) {
+                    if ((!this.options.publicReload && !file.includes('.json') && !file.includes('.html') && file.includes(`/${this.options.output}/`)) || this.options.publicReload) {
                         this.reload();
                     }
                 }
@@ -52,7 +52,8 @@ export default new class {
         let options = {
             output: "public",
             root: process.cwd(),
-            ignored: []
+            ignored: [],
+            publicReload: true
         }
 
         let viteOptions = {
