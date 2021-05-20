@@ -1,3 +1,6 @@
+<a href="https://npmjs.com/package/gulp-vite"><img src="https://img.shields.io/npm/v/gulp-vite.svg" alt="npm package"></a>
+<a href="https://nodejs.org/en/about/releases/"><img src="https://img.shields.io/node/v/gulp-vite.svg" alt="node compatility"></a>
+
 # 🥤 gulp-vite
 
 Vite build system may not suit everyone, because of limiting entry options
@@ -73,7 +76,7 @@ npx gulp --tasks
 
 ### Requirements
 
-- [Node.js LTS (12.x)](https://nodejs.org/en/download/) or current
+- [Node.js LTS (14.x)](https://nodejs.org/en/download/) or current
 - [NPM](https://www.npmjs.com/package/npm) or [Yarn](https://yarnpkg.com/)
 
 ## Licence
