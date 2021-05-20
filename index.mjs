@@ -28,7 +28,7 @@ export default new class {
             reload: {
                 name: 'reload',
                 "handleHotUpdate": ({ file }) => {
-                    if ((!this.options.publicReload && !file.includes('.json') && !file.includes('.html') && file.includes(`/${this.options.output}/`)) || this.options.publicReload) {
+                    if ((!this.options.publicReload && !file.includes('.json') && !file.includes('.html') && file.includes(`/${this.options.output}/`)) || (this.options.publicReload && file.includes(`/${this.options.output}/`))) {
                         this.reload();
                     }
                 }
@@ -56,6 +56,8 @@ export default new class {
             publicReload: true
         }
 
+        lodash.merge(options, userOptions)
+
         let viteOptions = {
             vite: {
                 plugins: [this.plugin.middleware, this.plugin.reload],
@@ -68,15 +70,18 @@ export default new class {
                     },
                     watch: {
                         // default vite watch ignore files and additional files to ignore, reload for templates files is handled manually
-                        ignored: options.ignored.concat(['**/node_modules/**', '**/.git/**', `**/${options.output}/*.html`])
+                        ignored: options.ignored.concat(['**/node_modules/**', '**/.git/**'])
                     }
                 },
                 root: options.root
             }
         }
 
+        if (!options.publicReload) {
+            viteOptions.vite.server.watch.ignored.push(`**/${options.output}/*.html`);
+        }
+
         lodash.merge(options, viteOptions)
-        lodash.merge(options, userOptions)
 
         this.options = options;
 
