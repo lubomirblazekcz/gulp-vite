@@ -32,18 +32,19 @@ var index = new class {
                     };
                 }
             },
-            // reload page if there is change in public directory (doesn't work with vite by default)
+            // reload page if there is change in public directory (it doesn't work with vite by default)
             reload: {
                 name: 'reload',
                 "handleHotUpdate": ({ file }) => {
-                    if (!file.includes('.json') && !file.includes('.html') && file.includes(`/${this.options.output}/`)) {
-                        this.reload();
+                    if ((!this.options.reloadPublic && !file.includes('.json') && !file.includes('.html') && file.includes(`/${this.options.output}/`))
+                        || (this.options.reloadPublic && file.includes(`/${this.options.output}/`)) || this.options.reloadFiles(file)) {
+                        this.reload(file);
                     }
                 }
             }
         }
     }
-    reload() {
+    reload(file) {
         // you can use this function to reload page in any gulp task you want, or anywhere in generally
         if (typeof this.server !== "undefined") {
             this.server.ws.send({
@@ -51,7 +52,7 @@ var index = new class {
                 path: '*',
             });
             this.server.config.logger.info(
-                chalk__default['default'].green(`page reload `) + chalk__default['default'].dim(`${this.options.output}/*.html`),
+                chalk__default['default'].green(`page reload `) + chalk__default['default'].dim(typeof file !== "undefined" ? file.replace(`${this.options.root}/`, "") : `*.html`),
                 { clear: true, timestamp: true }
             );
         }
@@ -60,8 +61,12 @@ var index = new class {
         let options = {
             output: "public",
             root: process.cwd(),
-            ignored: []
+            ignored: [],
+            reloadPublic: true,
+            reloadFiles: () => false
         };
+
+        lodash__default['default'].merge(options, userOptions);
 
         let viteOptions = {
             vite: {
@@ -75,15 +80,18 @@ var index = new class {
                     },
                     watch: {
                         // default vite watch ignore files and additional files to ignore, reload for templates files is handled manually
-                        ignored: options.ignored.concat(['**/node_modules/**', '**/.git/**', `**/${options.output}/*.html`])
+                        ignored: options.ignored.concat(['**/node_modules/**', '**/.git/**'])
                     }
                 },
                 root: options.root
             }
         };
 
+        if (!options.reloadPublic) {
+            viteOptions.vite.server.watch.ignored.push(`**/${options.output}/*.html`);
+        }
+
         lodash__default['default'].merge(options, viteOptions);
-        lodash__default['default'].merge(options, userOptions);
 
         this.options = options;
 

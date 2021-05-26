@@ -36,7 +36,8 @@ let userConfig = {};
 let viteOptions = {
     ignored: [`**/${config.input.templates}/**`],
     output: config.output.templates,
-    publicReload: false,
+    reloadPublic: false,
+    reloadFiles: (file) => file.endsWith(".php"),
     vite: {
         css: {
             postcss: {
@@ -126,7 +127,7 @@ const Templates = new class {
             }))
             .pipe(rename({ extname: '.html' }))
             .pipe(gulp.dest(path.join(config.root, config.output.templates)))
-            .on("end", () => Serve.reload())
+            .on("end", () => Serve.reload(`${config.output.templates}/*.html`))
     }
 }
 

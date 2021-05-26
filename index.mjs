@@ -28,14 +28,15 @@ export default new class {
             reload: {
                 name: 'reload',
                 "handleHotUpdate": ({ file }) => {
-                    if ((!this.options.publicReload && !file.includes('.json') && !file.includes('.html') && file.includes(`/${this.options.output}/`)) || (this.options.publicReload && file.includes(`/${this.options.output}/`))) {
-                        this.reload();
+                    if ((!this.options.reloadPublic && !file.includes('.json') && !file.includes('.html') && file.includes(`/${this.options.output}/`))
+                        || (this.options.reloadPublic && file.includes(`/${this.options.output}/`)) || this.options.reloadFiles(file)) {
+                        this.reload(file);
                     }
                 }
             }
         }
     }
-    reload() {
+    reload(file) {
         // you can use this function to reload page in any gulp task you want, or anywhere in generally
         if (typeof this.server !== "undefined") {
             this.server.ws.send({
@@ -43,7 +44,7 @@ export default new class {
                 path: '*',
             });
             this.server.config.logger.info(
-                chalk.green(`page reload `) + chalk.dim(`${this.options.output}/*.html`),
+                chalk.green(`page reload `) + chalk.dim(typeof file !== "undefined" ? file.replace(`${this.options.root}/`, "") : `*.html`),
                 { clear: true, timestamp: true }
             )
         }
@@ -53,7 +54,8 @@ export default new class {
             output: "public",
             root: process.cwd(),
             ignored: [],
-            publicReload: true
+            reloadPublic: true,
+            reloadFiles: () => false
         }
 
         lodash.merge(options, userOptions)
@@ -77,7 +79,7 @@ export default new class {
             }
         }
 
-        if (!options.publicReload) {
+        if (!options.reloadPublic) {
             viteOptions.vite.server.watch.ignored.push(`**/${options.output}/*.html`);
         }
 
