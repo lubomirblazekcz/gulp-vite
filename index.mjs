@@ -2,6 +2,9 @@ import chalk from "chalk";
 import path from "path";
 import lodash from "lodash";
 import {createServer} from "vite";
+import { createRequire } from 'module'
+
+const require = createRequire(import.meta.url);
 
 export default new class {
     get plugin() {
@@ -94,7 +97,9 @@ export default new class {
             // starts the server
             await this.server.listen()
 
-            console.log(" ");
+            console.log(chalk.cyan(`\n  vite v${require('vite/package.json').version}`) + chalk.green(` dev server running at:\n`))
+            this.server.printUrls()
+            console.log("")
 
             resolve();
         })

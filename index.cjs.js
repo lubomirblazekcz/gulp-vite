@@ -4,12 +4,15 @@ var chalk = require('chalk');
 var path = require('path');
 var lodash = require('lodash');
 var vite = require('vite');
+var module$1 = require('module');
 
 function _interopDefaultLegacy (e) { return e && typeof e === 'object' && 'default' in e ? e : { 'default': e }; }
 
 var chalk__default = /*#__PURE__*/_interopDefaultLegacy(chalk);
 var path__default = /*#__PURE__*/_interopDefaultLegacy(path);
 var lodash__default = /*#__PURE__*/_interopDefaultLegacy(lodash);
+
+const require$1 = module$1.createRequire((typeof document === 'undefined' ? new (require('u' + 'rl').URL)('file:' + __filename).href : (document.currentScript && document.currentScript.src || new URL('index.cjs.js', document.baseURI).href)));
 
 var index = new class {
     get plugin() {
@@ -52,7 +55,7 @@ var index = new class {
                 path: '*',
             });
             this.server.config.logger.info(
-                chalk__default['default'].green(`page reload `) + chalk__default['default'].dim(typeof file !== "undefined" ? file.replace(`${this.options.root}/`, "") : `*.html`),
+                chalk__default["default"].green(`page reload `) + chalk__default["default"].dim(typeof file !== "undefined" ? file.replace(`${this.options.root}/`, "") : `*.html`),
                 { clear: true, timestamp: true }
             );
         }
@@ -66,12 +69,12 @@ var index = new class {
             reloadFiles: () => false
         };
 
-        lodash__default['default'].merge(options, userOptions);
+        lodash__default["default"].merge(options, userOptions);
 
         let viteOptions = {
             vite: {
                 plugins: [this.plugin.middleware, this.plugin.reload],
-                publicDir: path__default['default'].join(options.root, options.output),
+                publicDir: path__default["default"].join(options.root, options.output),
                 server: {
                     open: "/",
                     host: true,
@@ -91,7 +94,7 @@ var index = new class {
             viteOptions.vite.server.watch.ignored.push(`**/${options.output}/*.html`);
         }
 
-        lodash__default['default'].merge(options, viteOptions);
+        lodash__default["default"].merge(options, viteOptions);
 
         this.options = options;
 
@@ -102,7 +105,9 @@ var index = new class {
             // starts the server
             await this.server.listen();
 
-            console.log(" ");
+            console.log(chalk__default["default"].cyan(`\n  vite v${require$1('vite/package.json').version}`) + chalk__default["default"].green(` dev server running at:\n`));
+            this.server.printUrls();
+            console.log("");
 
             resolve();
         })
