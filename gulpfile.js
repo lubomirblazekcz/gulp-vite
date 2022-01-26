@@ -195,7 +195,9 @@ gulp.task('watch:build', () => {
         gulp.watch(`${config.root}/${config.input.styles}/**`, gulp.series('styles:build'))
     }
 
-    if (exists.templates) {
+    if (exists.templates && exists.styles) {
+        gulp.watch(`${config.root}/${config.input.templates}/**`, gulp.series('templates', 'styles:build'))
+    } else {
         gulp.watch(`${config.root}/${config.input.templates}/**`, gulp.series('templates'))
     }
 })
