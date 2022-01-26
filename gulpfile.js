@@ -34,7 +34,15 @@ const config = {
     serve: {
         mode: ''
     },
+    scripts: {
+        esbuild: {
+            plugins: []
+        }
+    },
     styles: {
+        esbuild: {
+            plugins: []
+        },
         postcss: []
     }
 }
@@ -70,7 +78,7 @@ const Scripts = new class {
         // scripts are being build with esbuild so you can use javascript or typescript
         // you can apply any other transformation in the pipe, hash revision can be done with gulp-rev-all or directly in esbuild with esbuild-plugin-manifest
         return gulp.src(config.root + `/${config.input.scripts}/*.{js,ts,tsx}`)
-            .pipe(esbuild({
+            .pipe(esbuild(lodash.merge({
                 format: 'esm',
                 splitting: true,
                 bundle: true,
@@ -78,7 +86,7 @@ const Scripts = new class {
                 assetNames: '[name].[hash]',
                 chunkNames: '[name].[hash]'
                 // entryNames: '[name].[hash]'
-            }))
+            }, config.scripts.esbuild)))
             .pipe(gulp.dest(path.join(config.root, config.output.scripts)))
     }
 }()
@@ -88,7 +96,7 @@ const Styles = new class {
         // styles are being build with esbuild and esbuild-plugin-postcss2 so you can use postcss or any preprocessor
         // you can apply any other transformation in the pipe (cleancss, purgecss etc.), hash revision can be done with gulp-rev-all or directly in esbuild with esbuild-plugin-manifest
         return gulp.src(config.root + `/${config.input.styles}/*.{css,sass,scss,less, stylus}`)
-            .pipe(esbuild({
+            .pipe(esbuild(lodash.merge({
                 plugins: [
                     postCssPlugin.default({
                         plugins: config.styles.postcss
@@ -96,7 +104,7 @@ const Styles = new class {
                 ],
                 minify: true
                 // entryNames: '[name].[hash]'
-            }))
+            }, config.styles.esbuild)))
             .pipe(gulp.dest(path.join(config.root, config.output.styles)))
     }
 }()
